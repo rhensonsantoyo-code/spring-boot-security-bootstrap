@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head><meta charset="UTF-8"/><title>User Home</title>
     <link rel="stylesheet" th:href="@{/css/style.css}"></head>
 <body>
 <h1>User Home</h1>
 <p th:text="'Hello, ' + ${username} + '!'"></p>
-<p>Authorities: <span th:text="${authorities}"></span></p>
-<p>
-    <a th:href="@{/logout}">Logout</a> |
-    <a th:href="@{/admin/users}">Admin (if allowed)</a>
+<p>Authorities:
+    <span th:each="a : ${authorities}" th:text="${a} + ' '" />
 </p>
+
+<form th:action="@{/logout}" method="post" style="display:inline;">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+    <button type="submit">Logout</button>
+</form>
+<span sec:authorize="hasRole('ADMIN')"> | <a th:href="@{/admin/users}">Admin</a></span>
 </body>
 </html>

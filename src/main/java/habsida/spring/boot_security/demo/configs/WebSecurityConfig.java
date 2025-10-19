@@ -28,22 +28,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) {
-        auth.authenticationProvider(authenticationProvider());
-    }
+    protected void configure(AuthenticationManagerBuilder auth) { auth.authenticationProvider(authenticationProvider()); }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/css/**","/js/**","/images/**","/rest/**","/","/login").permitAll()
+                .antMatchers("/css/**","/js/**","/images/**","/","/login").permitAll()
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers("/user").hasAnyRole("USER","ADMIN")
                 .anyRequest().authenticated()
                 .and()
-                .formLogin()
-                .loginPage("/login").permitAll()
-                .successHandler(new SuccessUserHandler())
+                .formLogin().loginPage("/login").permitAll().successHandler(new SuccessUserHandler())
                 .and()
                 .logout()
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))

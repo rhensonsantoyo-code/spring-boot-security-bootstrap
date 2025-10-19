@@ -9,8 +9,7 @@ import java.io.IOException;
 
 public class SuccessUserHandler implements AuthenticationSuccessHandler {
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest req, HttpServletResponse res,
-                                        Authentication auth) throws IOException {
+    public void onAuthenticationSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth) throws IOException {
         boolean admin = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(a -> a.equals("ROLE_ADMIN"));

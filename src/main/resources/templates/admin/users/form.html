@@ -9,6 +9,7 @@
 <h1 th:text="${user.id} == null ? 'Create User' : 'Edit User'"></h1>
 
 <form th:action="@{/admin/users/save}" th:object="${user}" method="post" novalidate>
+    <!-- CSRF -->
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
     <input type="hidden" th:field="*{id}"/>
 
@@ -22,7 +23,7 @@
         <label>Name</label><br/>
         <input th:field="*{name}" required
                pattern="[A-Za-z]+(?:[ -][A-Za-z]+)*"
-               title="Letters only (spaces and hyphens allowed)" />
+               title="Letters only (spaces and hyphens allowed)"/>
         <span class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></span>
     </p>
 
@@ -34,8 +35,12 @@
 
     <p>
         <label>Password</label><br/>
+        <!-- IMPORTANT: do NOT use th:attrappend here -->
+        <!-- This sets required=true on create, false on edit -->
         <input th:field="*{password}" type="password"
-               th:placeholder="${user.id} != null ? '(leave blank to keep current password)' : ''" />
+               th:attr="required=${user.id} == null"
+               th:placeholder="${user.id} != null ? '(leave blank to keep current password)' : ''"/>
+        <span class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
     </p>
 
     <fieldset>
@@ -50,10 +55,7 @@
 
     <p style="margin-top:12px;">
         <button type="submit">Save</button>
-        &nbsp;|&nbsp;
-        <a th:href="@{/admin/users}">Cancel</a>
-        &nbsp;|&nbsp;
-        <a th:href="@{/logout}">Logout</a>
+        &nbsp;|&nbsp; <a th:href="@{/admin/users}">Cancel</a>
     </p>
 </form>
 </body>

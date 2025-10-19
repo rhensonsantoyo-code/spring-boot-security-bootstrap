@@ -8,10 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -32,15 +29,33 @@ public class UserServiceImpl implements UserService {
 
     @Override @Transactional
     public User save(User user) {
+        // Duplicate username protection (allow same record on update)
+        repo.findByUsername(user.getUsername()).ifPresent(existing -> {
+            if (user.getId() == null || !existing.getId().equals(user.getId())) {
+                throw new IllegalArgumentException("Username already exists");
+            }
+        });
+
+        // Map roleIds -> Role entities
         if (user.getRoleIds() != null && !user.getRoleIds().isEmpty()) {
             Set<Role> selected = new HashSet<>(roleRepo.findAllById(user.getRoleIds()));
             user.setRoles(selected);
         }
-        if (user.getPassword() != null && !user.getPassword().isBlank()) {
+
+        // Password rules: must not be empty on create; keep old on edit if blank
+        if (user.getId() == null) {
+            if (user.getPassword() == null || user.getPassword().isBlank()) {
+                throw new IllegalArgumentException("Password must not be empty");
+            }
             user.setPassword(encoder.encode(user.getPassword()));
-        } else if (user.getId() != null) {
-            repo.findById(user.getId()).ifPresent(existing -> user.setPassword(existing.getPassword()));
+        } else {
+            if (user.getPassword() != null && !user.getPassword().isBlank()) {
+                user.setPassword(encoder.encode(user.getPassword()));
+            } else {
+                repo.findById(user.getId()).ifPresent(existing -> user.setPassword(existing.getPassword()));
+            }
         }
+
         return repo.save(user);
     }
 

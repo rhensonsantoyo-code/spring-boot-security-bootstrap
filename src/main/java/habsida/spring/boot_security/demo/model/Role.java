@@ -10,7 +10,7 @@ public class Role implements GrantedAuthority {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String name; // "ADMIN", "USER"
+    private String name; // ADMIN / USER
 
     public Role() {}
     public Role(Long id, String name) { this.id = id; this.name = name; }
@@ -22,11 +22,8 @@ public class Role implements GrantedAuthority {
 
     @Override public String getAuthority() { return "ROLE_" + name; }
 
-    @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Role)) return false;
-        Role role = (Role) o;
-        return Objects.equals(id, role.id) && Objects.equals(name, role.name);
-    }
-    @Override public int hashCode() { return Objects.hash(id, name); }
+    @Override public String toString() { return name; } // pretty print
+
+    @Override public boolean equals(Object o) { return this == o || (o instanceof Role && Objects.equals(id, ((Role)o).id)); }
+    @Override public int hashCode() { return Objects.hash(id); }
 }
