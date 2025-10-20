@@ -21,6 +21,7 @@
 
     <p>
         <label>Name</label><br/>
+        <!-- letters only, allow spaces & hyphens -->
         <input th:field="*{name}" required
                pattern="[A-Za-z]+(?:[ -][A-Za-z]+)*"
                title="Letters only (spaces and hyphens allowed)"/>
@@ -35,8 +36,7 @@
 
     <p>
         <label>Password</label><br/>
-        <!-- IMPORTANT: do NOT use th:attrappend here -->
-        <!-- This sets required=true on create, false on edit -->
+        <!-- Required on create; blank on edit keeps current hash -->
         <input th:field="*{password}" type="password"
                th:attr="required=${user.id} == null"
                th:placeholder="${user.id} != null ? '(leave blank to keep current password)' : ''"/>
@@ -45,7 +45,8 @@
 
     <fieldset>
         <legend>Roles</legend>
-        <div th:each="r : ${allRoles}" style="margin: 4px 0;">
+        <!-- Requires controller to provide model attr 'allRoles' -->
+        <div th:each="r : ${allRoles}" style="margin:4px 0;">
             <label>
                 <input type="checkbox" th:field="*{roleIds}" th:value="${r.id}"/>
                 <span th:text="${r.name}">ROLE</span>

@@ -25,16 +25,16 @@ public class UserController {
     }
 
     @GetMapping
-    public String list(Model model, @ModelAttribute("success") String success) {
+    public String list(Model model, @ModelAttribute("success") String successMsg) {
         model.addAttribute("users", userService.findAll());
-        return "admin/users/list"; // => templates/admin/users/list.html
+        return "admin/users/list";
     }
 
     @GetMapping("/create")
     public String createForm(Model model) {
         model.addAttribute("user", new User());
         model.addAttribute("allRoles", roleRepository.findAll());
-        return "admin/users/form"; // => templates/admin/users/form.html
+        return "admin/users/form";
     }
 
     @GetMapping("/edit/{id}")
@@ -55,12 +55,14 @@ public class UserController {
                        BindingResult result,
                        Model model,
                        RedirectAttributes redirect) {
+
         if (result.hasErrors()) {
             model.addAttribute("allRoles", roleRepository.findAll());
             return "admin/users/form";
         }
+
         try {
-            userService.save(user); // duplicate username & password rules enforced here
+            userService.save(user);
         } catch (IllegalArgumentException ex) {
             String msg = ex.getMessage() == null ? "Validation error" : ex.getMessage();
             String lower = msg.toLowerCase();
@@ -74,6 +76,7 @@ public class UserController {
             model.addAttribute("allRoles", roleRepository.findAll());
             return "admin/users/form";
         }
+
         redirect.addFlashAttribute("success", "User saved successfully!");
         return "redirect:/admin/users";
     }
