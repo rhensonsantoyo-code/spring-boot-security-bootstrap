@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class JpaUserDetailsService implements UserDetailsService {
     private final UserRepository users;
-    public JpaUserDetailsService(UserRepository users) { this.users = users; }
+    public JpaUserDetailsService(UserRepository users) {
+        this.users = users; }
 
     @Override
     public org.springframework.security.core.userdetails.UserDetails loadUserByUsername(String username)
