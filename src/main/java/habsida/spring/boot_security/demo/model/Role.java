@@ -1,7 +1,6 @@
 package habsida.spring.boot_security.demo.model;
 
 import org.springframework.security.core.GrantedAuthority;
-
 import javax.persistence.*;
 import java.util.Objects;
 
@@ -14,25 +13,39 @@ public class Role implements GrantedAuthority {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name; // e.g. ADMIN, USER
+    private String name;
 
-    public Role() {}
-    public Role(String name) { this.name = name; }
+    // ✅ Default constructor (required by JPA)
+    public Role() {
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // ✅ Add this constructor so you can call new Role("ROLE_ADMIN")
+    public Role(String name) {
+        this.name = name;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    // Getters & setters
+    public Long getId() {
+        return id;
+    }
 
-    @Override
-    public String getAuthority() {
-        // we use authorities without ROLE_ prefix and match config with hasAuthority(...)
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    // Required by Spring Security
     @Override
-    public String toString() { return name; }
+    public String getAuthority() {
+        return name;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -43,5 +56,12 @@ public class Role implements GrantedAuthority {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(name); }
+    public int hashCode() {
+        return Objects.hash(name);
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

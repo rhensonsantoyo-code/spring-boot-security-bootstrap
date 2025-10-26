@@ -7,7 +7,6 @@ import habsida.spring.boot_security.demo.service.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -23,93 +22,144 @@ public class UserController {
     private final UserService userService;
     private final RoleRepository roleRepository;
 
-    // simple view model for the table
-    public static class Row {
-        public Long id;
-        public String username;
-        public String name;
-        public String email;
-        public Set<Role> roles;
-        public String rolesCsv; // e.g. "1,2"
-
-        public Row(User u) {
-            this.id = u.getId();
-            this.username = u.getUsername();
-            this.name = u.getName();
-            this.email = u.getEmail();
-            this.roles = u.getRoles();
-            this.rolesCsv = u.getRoles() == null ? "" :
-                    u.getRoles().stream()
-                            .map(r -> String.valueOf(r.getId()))
-                            .collect(Collectors.joining(","));
-        }
-    }
-
     public UserController(UserService userService, RoleRepository roleRepository) {
         this.userService = userService;
         this.roleRepository = roleRepository;
     }
 
-    // ---------- helpers ----------
-    private void buildListPageModel(Model model) {
-        List<User> users = userService.findAll();
-        List<Row> rows = users.stream().map(Row::new).collect(Collectors.toList());
-        model.addAttribute("rows", rows);                 // used by the table
-        model.addAttribute("users", users);               // optional if you still reference it
-        model.addAttribute("newUser", new User());        // for the "New User" tab
-        model.addAttribute("allRoles", roleRepository.findAll());
+    /* ------------------ helpers for all views ------------------ */
+
+    /** Available roles for the form (ADMIN/USER). */
+    @ModelAttribute("allRoles")
+    public List<String> allRoles() {
+        return roleRepository.findAll()
+                .stream()
+                .map(Role::getName) // e.g. ROLE_ADMIN, ROLE_USER
+                .collect(Collectors.toList());
     }
 
-    // ---------- pages ----------
+    /* ------------------ list page ------------------ */
+
     @GetMapping
-    public String adminPanel(Model model, @ModelAttribute("success") String success) {
-        buildListPageModel(model);
+    public String list(Model model,
+                       @ModelAttribute("success") String success,
+                       @ModelAttribute("error") String error) {
+        model.addAttribute("users", userService.findAll());
         return "admin/users/list";
     }
 
-    // ---------- actions ----------
-    @PostMapping("/create")
-    public String create(@Valid @ModelAttribute("newUser") User newUser,
-                         BindingResult result,
-                         Model model,
-                         RedirectAttributes redirect) {
-        if (result.hasErrors()) {
-            buildListPageModel(model);
-            return "admin/users/list";
-        }
-        try {
-            userService.save(newUser);
-        } catch (IllegalArgumentException ex) {
-            result.addError(new FieldError("newUser", "username", ex.getMessage()));
-            buildListPageModel(model);
-            return "admin/users/list";
-        }
-        redirect.addFlashAttribute("success", "User created");
-        return "redirect:/admin/users";
+    /* ------------------ create (GET/POST) ------------------ */
+
+    @GetMapping("/new")
+    public String showCreateForm(Model model) {
+        model.addAttribute("user", new User()); // empty bean for the form
+        return "admin/users/user"; // render create/edit form
     }
 
-    @PostMapping("/save")
-    public String saveFromModal(@Valid @ModelAttribute("user") User user,
-                                BindingResult result,
-                                RedirectAttributes redirect) {
-        if (result.hasErrors()) {
-            redirect.addFlashAttribute("success", "Validation error");
-            return "redirect:/admin/users";
+    @PostMapping
+    public String create(@Valid @ModelAttribute("user") User user,
+                         BindingResult binding,
+                         RedirectAttributes ra,
+                         Model model) {
+        // unique email validation example (optional)
+        if (user.getId() == null && userService.existsByEmailIgnoreCase(user.getEmail())) {
+            binding.rejectValue("email", "email.exists", "Email already exists");
         }
+
+        if (binding.hasErrors()) {
+            // on error we must keep allRoles + user in model, view back to form
+            return "admin/users/user";
+        }
+
         try {
+            // Service will encode password & keep old if blank (for updates)
             userService.save(user);
-        } catch (IllegalArgumentException ex) {
-            redirect.addFlashAttribute("success", ex.getMessage());
+            ra.addFlashAttribute("success", "User created successfully.");
             return "redirect:/admin/users";
+        } catch (Exception ex) {
+            model.addAttribute("error", ex.getMessage());
+            return "admin/users/user";
         }
-        redirect.addFlashAttribute("success", "User saved");
+    }
+
+    /* ------------------ edit (GET/POST) ------------------ */
+
+    @GetMapping("/{id}/edit")
+    public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        return userService.findById(id)
+                .map(u -> {
+                    model.addAttribute("user", u);
+                    return "admin/users/user";
+                })
+                .orElseGet(() -> {
+                    ra.addFlashAttribute("error", "User not found");
+                    return "redirect:/admin/users";
+                });
+    }
+
+    @PostMapping("/{id}")
+    public String update(@PathVariable Long id,
+                         @Valid @ModelAttribute("user") User form,
+                         BindingResult binding,
+                         RedirectAttributes ra,
+                         Model model) {
+
+        // protect ID
+        form.setId(id);
+
+        // prevent email duplication (optional)
+        userService.findByEmail(form.getEmail()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                binding.rejectValue("email", "email.exists", "Email already exists");
+            }
+        });
+
+        if (binding.hasErrors()) {
+            return "admin/users/user";
+        }
+
+        try {
+            userService.save(form); // service handles blank password (= keep old)
+            ra.addFlashAttribute("success", "User updated successfully.");
+            return "redirect:/admin/users";
+        } catch (Exception ex) {
+            model.addAttribute("error", ex.getMessage());
+            return "admin/users/user";
+        }
+    }
+
+    /* ------------------ delete ------------------ */
+
+    @PostMapping("/{id}/delete")
+    public String delete(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            userService.deleteById(id);
+            ra.addFlashAttribute("success", "User deleted.");
+        } catch (Exception ex) {
+            ra.addFlashAttribute("error", "Delete failed: " + ex.getMessage());
+        }
         return "redirect:/admin/users";
     }
 
-    @PostMapping("/delete/{id}")
-    public String delete(@PathVariable Long id, RedirectAttributes redirect) {
-        userService.deleteById(id);
-        redirect.addFlashAttribute("success", "User deleted");
-        return "redirect:/admin/users";
-    }
+    /* ------------------ roles binding from form ------------------ */
+
+    /**
+     * If your form posts role names (e.g. ROLE_ADMIN) into user.roles,
+     * make sure your User entity has a setter that accepts Set<Role>.
+     * If you post plain strings, you can map them here, e.g.:
+     *
+     * @InitBinder
+     * protected void initBinder(WebDataBinder binder) {
+     * binder.registerCustomEditor(Set.class, "roles", new CustomCollectionEditor(Set.class) {
+     * protected Object convertElement(Object element) {
+     * if (element == null) return null;
+     * String name = element.toString();
+     * return roleRepository.findByNameIgnoreCase(name).orElse(new Role(name));
+     * }
+     * });
+     * }
+     *
+     * In most cases, if your form uses <option th:value="${role}">ROLE_USER</option>,
+     * Spring will bind to Set<String>. Then convert inside service before saving.
+     */
 }

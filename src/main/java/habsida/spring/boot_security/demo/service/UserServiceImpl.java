@@ -1,62 +1,63 @@
 package habsida.spring.boot_security.demo.service;
 
-import habsida.spring.boot_security.demo.model.Role;
 import habsida.spring.boot_security.demo.model.User;
-import habsida.spring.boot_security.demo.repository.RoleRepository;
 import habsida.spring.boot_security.demo.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository repo;
-    private final RoleRepository roleRepo;
-    private final PasswordEncoder encoder;
+    private final UserRepository userRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository repo, RoleRepository roleRepo, PasswordEncoder encoder) {
-        this.repo = repo;
-        this.roleRepo = roleRepo;
-        this.encoder = encoder;
+    public UserServiceImpl(UserRepository userRepo, PasswordEncoder passwordEncoder) {
+        this.userRepo = userRepo;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    @Override @Transactional(readOnly = true)
-    public List<User> findAll() { return repo.findAll(); }
+    @Override
+    public List<User> findAll() {
+        return userRepo.findAll();
+    }
 
-    @Override @Transactional(readOnly = true)
-    public Optional<User> findById(Long id) { return repo.findById(id); }
+    @Override
+    public Optional<User> findById(Long id) {
+        return userRepo.findById(id);
+    }
 
-    @Override @Transactional
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return userRepo.findByEmail(email);
+    }
+
+    @Override
     public User save(User user) {
-        // duplicate username
-        repo.findByUsername(user.getUsername()).ifPresent(existing -> {
-            if (user.getId() == null || !existing.getId().equals(user.getId()))
-                throw new IllegalArgumentException("Username already exists");
-        });
-
-        // roles from roleIds
-        if (user.getRoleIds() != null && !user.getRoleIds().isEmpty()) {
-            Set<Role> selected = new HashSet<>(roleRepo.findAllById(user.getRoleIds()));
-            user.setRoles(selected);
+        // Encode password only if provided
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        } else if (user.getId() != null) {
+            // Keep the existing password on update
+            userRepo.findById(user.getId()).ifPresent(existing -> user.setPassword(existing.getPassword()));
         }
-
-        if (user.getId() == null) {
-            if (user.getPassword() == null || user.getPassword().isBlank())
-                throw new IllegalArgumentException("Password must not be empty");
-            user.setPassword(encoder.encode(user.getPassword()));
-        } else {
-            if (user.getPassword() != null && !user.getPassword().isBlank()) {
-                user.setPassword(encoder.encode(user.getPassword()));
-            } else {
-                repo.findById(user.getId()).ifPresent(e -> user.setPassword(e.getPassword()));
-            }
-        }
-        return repo.save(user);
+        return userRepo.save(user);
     }
 
-    @Override @Transactional
-    public void deleteById(Long id) { repo.deleteById(id); }
+    @Override
+    public User update(User user) {
+        return save(user); // reuse save logic
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        userRepo.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByEmailIgnoreCase(String email) {
+        return userRepo.existsByEmailIgnoreCase(email);
+    }
 }

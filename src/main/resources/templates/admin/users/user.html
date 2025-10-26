@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Your custom stylesheet (optional) -->
+    <link th:href="@{/style.css}" rel="stylesheet"/>
+
+    <!-- FIX: no nested ${} inside expression -->
+    <title th:text="${user.id} == null ? 'Create User' : 'Edit User'">User</title>
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#" th:href="@{/admin/users}">Admin panel</a>
+        <div class="d-flex">
+            <a class="btn btn-outline-light btn-sm" th:href="@{/logout}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h1 class="h5 m-0" th:text="${user.id} == null ? 'Add new user' : 'Edit user'">User</h1>
+                </div>
+
+                <div class="card-body">
+
+                    <!-- friendly flash messages -->
+                    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                    <!--
+                      When id is null -> POST /admin/users
+                      When id is present -> POST /admin/users/{id}
+                      (No CSRF field used here to avoid the previous _csrf error.)
+                    -->
+                    <form th:action="${user.id} == null ? @{/admin/users} : @{/admin/users/{id}(id=${user.id})}"
+                          method="post" th:object="${user}" novalidate>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" th:field="*{email}" class="form-control"
+                                   placeholder="name@example.com" required>
+                            <div class="form-text">We’ll never share your email.</div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                        </div>
+
+                        <div class="row">
+                            <!-- First Name -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <input type="text" th:field="*{firstName}" class="form-control"
+                                       placeholder="First name"
+                                       pattern="^[A-Za-z][A-Za-z\s'-]*$"
+                                       title="Letters, spaces, apostrophes and hyphens only"
+                                       required>
+                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" th:field="*{lastName}" class="form-control"
+                                       placeholder="Last name"
+                                       pattern="^[A-Za-z][A-Za-z\s'-]*$"
+                                       title="Letters, spaces, apostrophes and hyphens only"
+                                       required>
+                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Age -->
+                        <div class="mb-3">
+                            <label class="form-label">Age</label>
+                            <input type="number" th:field="*{age}" class="form-control"
+                                   min="0" max="150" placeholder="Age" required>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></div>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" th:field="*{password}" class="form-control"
+                                   th:placeholder="${user.id} == null ? 'Set a password' : 'Leave blank to keep current'}">
+                            <div class="form-text" th:if="${user.id != null}">
+                                Leave blank to keep the current password.
+                            </div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                        </div>
+
+                        <!-- Roles -->
+                        <div class="mb-4">
+                            <label class="form-label">Role</label>
+                            <select th:field="*{roles}" class="form-select" multiple size="2" required>
+                                <!-- expects a model attribute 'roles' = List<Role> -->
+                                <option th:each="r : ${roles}"
+                                        th:value="${r.name}"
+                                        th:text="${#strings.replace(r.name,'ROLE_','')}"
+                                        th:selected="${user.roles != null and user.roles.contains(r)}">
+                                </option>
+                            </select>
+                            <div class="form-text">Hold Ctrl (Cmd on Mac) to select multiple.</div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('roles')}" th:errors="*{roles}"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-secondary" th:href="@{/admin/users}">Cancel</a>
+                            <button type="submit" class="btn btn-primary"
+                                    th:text="${user.id} == null ? 'Create user' : 'Save changes'}">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

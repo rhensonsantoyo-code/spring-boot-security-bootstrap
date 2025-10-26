@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class JpaUserDetailsService implements UserDetailsService {
@@ -17,8 +18,13 @@ public class JpaUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return users.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User u = users.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User with email not found: " + email));
+
+        // initialize roles to avoid LazyInitializationException
+        u.getRoles().size();
+        return u; // User implements UserDetails
     }
 }
