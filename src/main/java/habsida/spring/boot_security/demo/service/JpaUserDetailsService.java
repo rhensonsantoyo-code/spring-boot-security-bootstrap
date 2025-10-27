@@ -9,22 +9,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class JpaUserDetailsService implements UserDetailsService {
 
-    private final UserRepository users;
+    private final UserRepository repo;
 
-    public JpaUserDetailsService(UserRepository users) {
-        this.users = users;
-    }
+    public JpaUserDetailsService(UserRepository repo) { this.repo = repo; }
 
     @Override
-    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User u = users.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User with email not found: " + email));
-
-        // initialize roles to avoid LazyInitializationException
-        u.getRoles().size();
-        return u; // User implements UserDetails
+        User u = repo.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return org.springframework.security.core.userdetails.User
+                .withUsername(u.getEmail())
+                .password(u.getPassword())
+                .authorities(u.getRoles())
+                .accountLocked(false).disabled(false).build();
     }
 }

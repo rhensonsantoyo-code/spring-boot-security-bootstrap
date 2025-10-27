@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/layout :: head(~{::title})"><title>Add User</title></head>
+<body>
+<div th:replace="fragments/layout :: content">
+    <section>
+        <h1 class="h3">Add User</h1>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <form th:action="@{/admin/users}" method="post" th:object="${user}" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <input type="email" th:field="*{email}" class="form-control" required>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">First name</label>
+                <input type="text" th:field="*{firstName}" class="form-control"
+                       pattern="^[A-Za-z][A-Za-z\s'-]*$" required>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Last name</label>
+                <input type="text" th:field="*{lastName}" class="form-control"
+                       pattern="^[A-Za-z][A-Za-z\s'-]*$" required>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Age</label>
+                <input type="number" th:field="*{age}" class="form-control" min="0" max="150" required>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Password</label>
+                <input type="password" th:field="*{password}" class="form-control" required>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+            </div>
+
+            <!-- NOTE: use name='roleNames' (NOT th:field on *{roles}) -->
+            <div class="col-md-6">
+                <label class="form-label">Role</label>
+                <select name="roleNames" class="form-select" multiple size="2" required>
+                    <option th:each="r : ${roles}" th:value="${r.name}"
+                            th:text="${#strings.replace(r.name,'ROLE_','')}"></option>
+                </select>
+                <div class="form-text">Hold Ctrl/Cmd to select.</div>
+            </div>
+
+            <div class="col-12">
+                <a class="btn btn-outline-secondary" th:href="@{/admin/users}">Cancel</a>
+                <button class="btn btn-primary" type="submit">Create user</button>
+            </div>
+        </form>
+    </section>
+</div>
+</body>
+</html>

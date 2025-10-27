@@ -2,76 +2,54 @@ package habsida.spring.boot_security.demo.configs;
 
 import habsida.spring.boot_security.demo.model.Role;
 import habsida.spring.boot_security.demo.model.User;
-import habsida.spring.boot_security.demo.repository.RoleRepository;
 import habsida.spring.boot_security.demo.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import habsida.spring.boot_security.demo.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Set;
 
-/**
- * Seeds required roles and a couple of users on startup (idempotent).
- * - Roles: ROLE_ADMIN, ROLE_USER
- * - Users:
- * admin@admin / admin -> ROLE_ADMIN
- * user@user / user -> ROLE_USER
- *
- * Requires:
- * - Role has a constructor Role(String name)
- * - RoleRepository: Optional<Role> findByNameIgnoreCase(String name)
- * - UserRepository: Optional<User> findByEmailIgnoreCase(String email)
- */
 @Component
-@Transactional
 public class DataInitializer {
 
-    private final RoleRepository roleRepo;
+    private final UserService userService;
     private final UserRepository userRepo;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder encoder;
 
-    @Autowired
-    public DataInitializer(RoleRepository roleRepo,
-                           UserRepository userRepo,
-                           PasswordEncoder passwordEncoder) {
-        this.roleRepo = roleRepo;
+    public DataInitializer(UserService userService, UserRepository userRepo, PasswordEncoder encoder) {
+        this.userService = userService;
         this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
+        this.encoder = encoder;
     }
 
     @PostConstruct
     public void init() {
-        // ---- Ensure roles exist ----
-        Role adminRole = roleRepo.findByNameIgnoreCase("ROLE_ADMIN")
-                .orElseGet(() -> roleRepo.save(new Role("ROLE_ADMIN")));
+        // Ensure roles
+        Role adminRole = userService.ensureRole("ROLE_ADMIN");
+        Role userRole = userService.ensureRole("ROLE_USER");
 
-        Role userRole = roleRepo.findByNameIgnoreCase("ROLE_USER")
-                .orElseGet(() -> roleRepo.save(new Role("ROLE_USER")));
-
-        // ---- Seed admin user if missing ----
+        // Seed admin if missing
         userRepo.findByEmailIgnoreCase("admin@admin").orElseGet(() -> {
             User u = new User();
+            u.setEmail("admin@admin");
             u.setFirstName("Admin");
             u.setLastName("Admin");
             u.setAge(28);
-            u.setEmail("admin@admin");
-            u.setPassword(passwordEncoder.encode("admin"));
-            u.setRoles(new HashSet<>(Arrays.asList(adminRole))); // admin only
+            u.setPassword(encoder.encode("admin"));
+            u.setRoles(Set.of(adminRole));
             return userRepo.save(u);
         });
 
-        // ---- Seed regular user if missing ----
+        // Seed normal user
         userRepo.findByEmailIgnoreCase("user@user").orElseGet(() -> {
             User u = new User();
+            u.setEmail("user@user");
             u.setFirstName("User");
             u.setLastName("User");
             u.setAge(38);
-            u.setEmail("user@user");
-            u.setPassword(passwordEncoder.encode("user"));
-            u.setRoles(new HashSet<>(Arrays.asList(userRole))); // user only
+            u.setPassword(encoder.encode("user"));
+            u.setRoles(Set.of(userRole));
             return userRepo.save(u);
         });
     }
