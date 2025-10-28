@@ -5,6 +5,7 @@ import habsida.spring.boot_security.demo.service.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -43,10 +44,17 @@ public class UserController {
                          BindingResult br,
                          @RequestParam(value = "roleNames", required = false) List<String> roleNames,
                          Model model) {
+
+        // 1) Inline duplicate-email check for CREATE
+        users.findByEmail(user.getEmail().trim()).ifPresent(existing -> {
+            br.addError(new FieldError("user", "email", "This email is already taken"));
+        });
+
         if (br.hasErrors()) {
             model.addAttribute("roles", users.allRoles());
             return "admin/users/add";
         }
+
         try {
             if (roleNames != null) {
                 user.setRoles(roleNames.stream()
@@ -77,10 +85,19 @@ public class UserController {
                          BindingResult br,
                          @RequestParam(value = "roleNames", required = false) List<String> roleNames,
                          Model model) {
+
+        // 2) Inline duplicate-email check for UPDATE (allow same email for the same user)
+        users.findByEmail(user.getEmail().trim()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                br.addError(new FieldError("user", "email", "This email is already taken"));
+            }
+        });
+
         if (br.hasErrors()) {
             model.addAttribute("roles", users.allRoles());
             return "admin/users/edit";
         }
+
         try {
             user.setId(id);
             if (roleNames != null) {
